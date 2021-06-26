@@ -4,7 +4,6 @@ const {
   fetchAsAdmin,
 } = process;
 
-
 describe('POST /products', () => {
   it('should fail with 401 when no auth', () => (
     fetch('/products', { method: 'POST' })
@@ -37,7 +36,6 @@ describe('POST /products', () => {
       })
   ));
 });
-
 
 describe('GET /products', () => {
   it('should get products with Auth', () => (
@@ -89,7 +87,6 @@ describe('GET /products/:productid', () => {
       })
   ));
 });
-
 
 describe('PUT /products/:productid', () => {
   it('should fail with 401 when no auth', () => (
@@ -158,7 +155,6 @@ describe('PUT /products/:productid', () => {
   ));
 });
 
-
 describe('DELETE /products/:productid', () => {
   it('should fail with 401 when no auth', () => (
     fetch('/products/xxx', { method: 'DELETE' })
@@ -200,6 +196,8 @@ describe('DELETE /products/:productid', () => {
         expect(resp.status).toBe(200);
         return fetchAsAdmin(`/products/${_id}`);
       })
-      .then((resp) => expect(resp.status).toBe(404))
+      .then((resp) => {
+        expect(resp.status).toBe(404);
+      })
   ));
 });
