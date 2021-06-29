@@ -1,16 +1,17 @@
 const bcrypt = require('bcrypt');
 const User = require('../models/user');
 const { isAdmin } = require('../middleware/auth');
+const {
+  Paginate,
+  emailOrId,
+  isAValidEmail,
+  isAWeakPassword,
+} = require('../utils/utils');
 
-const emailOrId = (params) => {
-  const checkForValidMongoDbID = new RegExp('^[0-9a-fA-F]{24}$');
-  const validObjectId = checkForValidMongoDbID.test(params);
-
-  if (validObjectId) {
-    return { _id: params };
-  }
-  return { email: params };
-};
+// contraseña valido /?=.*[0-9]/
+// contraseña invalido ^$
+// email invalido /?=.*[0-9]/
+// email valido ^[^@]+@[^@]+\.[a-zA-Z]{2,}$
 
 // Aquí debe ir la lógica de crear al usuario y
 // dar acceso a la bs
@@ -23,12 +24,7 @@ module.exports = {
         limit: parseInt(req.query.limit, 10) || 10,
       };
       const userPaginate = await User.paginate({}, options);
-      resp.links({
-        first: `${url}?limit=${options.limit}&page=${1}`,
-        prev: `${url}?limit=${options.limit}&page=${options.page - 1}`,
-        next: `${url}?limit=${options.limit}&page=${options.page + 1}`,
-        last: `${url}?limit=${options.limit}&page=${userPaginate.totalPages}`,
-      });
+      resp.links(Paginate(url, options, userPaginate));
       return resp.status(200).json(userPaginate.docs);
     } catch (err) { next(err); }
   },
@@ -63,15 +59,19 @@ module.exports = {
         return next(403);
       }
 
+      if (password && isAWeakPassword(password)) return next(400);
+
+      if (email && !isAValidEmail(email)) return next(400);
+
       const newUser = new User({
         email,
         password,
-        roles: roles.admin || false,
+        roles,
       });
 
       const user = await newUser.save(newUser);
-      resp.status(200).send({
-        id: user.id,
+      return resp.status(200).send({
+        _id: user._id,
         email: user.email,
         // password: user.password,
         roles: user.roles,
@@ -80,34 +80,61 @@ module.exports = {
       next(err);
     }
   },
-
   updateUser: async (req, res, next) => {
-    const { email, password, roles } = req.body;
+    const user = req.body;
     try {
-      const userId = req.params.uid;
-      const saltRounds = 10;
+      const { uid } = req.params;
+      const getEmailOrId = emailOrId(uid);
+      const findUser = await User.findOne(getEmailOrId);
+      // si la usuaria solicitada no existe
+      if (!findUser) return next(404);
+      // una usuaria no admin intenta de modificar sus `roles`
+      if (!isAdmin(req) && user.roles) return next(403);
 
-      await User.findByIdAndUpdate({ _id: userId }, {
-        email,
-        password: bcrypt.hashSync(password, saltRounds),
-        roles,
-      });
+      // si no es ni admin o la misma usuaria
+      if (req.userAuth.uid !== findUser._id.toString() && !isAdmin(req)) {
+        return next(403);
+      }
+      // si no se proveen `email` o `password` o ninguno de los dos
+      if (Object.keys(user).length === 0) return next(400);
 
-      const findUser = await User.findOne({ _id: userId });
-      res.status(200).send(findUser);
+      const userUpdate = await User.findOneAndUpdate(
+        getEmailOrId,
+        {
+          $set: user,
+        },
+        { new: true },
+      ).select('-password');
+
+      // console.log(req.userAuth, findUser);
+
+      return res.status(200).json(userUpdate);
     } catch (err) {
       next(err);
+      // should fail with 404 when admin not found
+      // cambio de err a 404
     }
   },
 
   deleteUser: async (req, resp, next) => {
     try {
-      const userId = req.params.uid;
-      const findUser = await User.findOne({ _id: userId });
-      await User.findByIdAndDelete({ _id: userId });
-      resp.status(200).send(findUser);
+      // const userId = req.params.uid;
+      // const findUser = await User.findOne({ _id: userId });
+      const { uid } = req.params;
+      const getEmailOrId = emailOrId(uid);
+
+      const findUser = await User.findOne(getEmailOrId);
+      if (!findUser) return next(404);
+      if (req.userAuth.uid !== findUser._id.toString() && !isAdmin(req)) {
+        return next(403);
+      }
+      // console.log('ad!!!', !req.userAuth.uid, '  z ', req.params.uid);
+      // console.log('??????admin', !isAdmin(req));
+      await User.findOneAndDelete(getEmailOrId);
+
+      return resp.status(200).send(findUser);
     } catch (err) {
-      next(err);
+      next(404);
     }
   },
 };

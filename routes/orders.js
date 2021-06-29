@@ -1,6 +1,7 @@
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireAdmin } = require('../middleware/auth');
 
 const {
+  getOrders,
   createOrder,
   deleteOrder,
   getOrderById,
@@ -35,7 +36,7 @@ module.exports = (app, nextMain) => {
    * @code {200} si la autenticación es correcta
    * @code {401} si no hay cabecera de autenticación
    */
-  app.get('/orders', requireAuth, (req, resp, next) => {});
+  app.get('/orders', requireAuth, getOrders);
 
   /**
    * @name GET /orders/:orderId
@@ -138,7 +139,7 @@ module.exports = (app, nextMain) => {
    * @code {401} si no hay cabecera de autenticación
    * @code {404} si el producto con `orderId` indicado no existe
    */
-  app.delete('/orders/:uid', deleteOrder);
+  app.delete('/orders/:uid', requireAdmin, deleteOrder);
 
   nextMain();
 };

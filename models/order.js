@@ -1,5 +1,6 @@
+const mongoose = require('mongoose');
 const { Schema, model } = require('mongoose');
-
+const moongosePaginate = require('mongoose-paginate-v2');
 // Estrcuturar data de order
 const orderSchema = new Schema(
   {
@@ -11,18 +12,15 @@ const orderSchema = new Schema(
       type: String,
       required: true,
     },
-    products: [
-      {
-        qty: {
-          type: Number,
-        },
-        productId: {
-          type: Schema.Types.ObjectId,
-          ref: 'products',
-          required: true,
-        },
+    products: [{
+      qty: {
+        type: Number,
       },
-    ],
+      product: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product',
+      },
+    }],
     status: {
       type: String,
       default: 'pending',
@@ -43,5 +41,5 @@ const orderSchema = new Schema(
     timestamps: true,
   },
 );
-
+orderSchema.plugin(moongosePaginate);
 module.exports = model('Order', orderSchema);
