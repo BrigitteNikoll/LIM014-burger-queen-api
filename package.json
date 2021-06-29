@@ -8,8 +8,8 @@
   },
   "scripts": {
     "pretest": "eslint .",
-    "start": "node index.js",
-    "test:e2e": "jest --verbose --testPathPattern e2e --globalSetup ./e2e/globalSetup --globalTeardown ./e2e/globalTeardown --runInBand",
+    "start": "nodemon index.js",
+    "test:e2e": "jest --verbose --testPathPattern e2e/users --globalSetup ./e2e/globalSetup --globalTeardown ./e2e/globalTeardown --runInBand",
     "test:unit": "jest --verbose --testPathIgnorePatterns e2e",
     "test": "npm run test:e2e && npm run test:unit",
     "lint": "eslint .",
@@ -20,9 +20,14 @@
     "bcrypt": "^5.0.1",
     "body-parser": "^1.19.0",
     "express": "^4.17.1",
-    "jsonwebtoken": "^8.5.1"
+    "jsonwebtoken": "^8.5.1",
+    "moment": "^2.29.1",
+    "mongoose": "^5.12.12",
+    "mongoose-paginate-v2": "^1.3.18",
+    "nodemon": "^2.0.7"
   },
   "devDependencies": {
+    "@shelf/jest-mongodb": "1.2.5",
     "docdash": "^1.2.0",
     "eslint": "^7.21.0",
     "eslint-config-airbnb-base": "^14.2.1",
